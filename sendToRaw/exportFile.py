@@ -1,5 +1,6 @@
 import boto3
 import os
+import consumoAparelho
 
 def send_to_s3(local_folder, bucket_name='bucket-teste', s3_prefix='arquivos/'):
   s3 = boto3.client('s3')
@@ -20,4 +21,5 @@ def send_to_s3(local_folder, bucket_name='bucket-teste', s3_prefix='arquivos/'):
 
 # Example usage
 if __name__ == "__main__":
+  consumoAparelho.download_pdf()
   send_to_s3("./sendToRaw/files")

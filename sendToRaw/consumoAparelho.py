@@ -1,7 +1,7 @@
 import requests
 import os
 
-def download_pdf(url, folder="files", filename="consumoAparelho.pdf"):
+def download_pdf(url, folder="./sendToRaw/files", filename="consumoAparelho.pdf"):
     filepath = os.path.join(folder, filename)
     response = requests.get(url)
     with open(filepath, "wb") as f:

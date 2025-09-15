@@ -11,6 +11,20 @@ def tratar_csv(nome_arquivo, pasta_saida='trusted'):
     df = df.drop(cols_to_drop, axis=1)
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
+    nomes_padronizados = [
+        'DATA',
+        'HORA_UTC',
+        'TEMP_MAX_HORA_ANT_C',
+        'TEMP_MIN_HORA_ANT_C',
+        'UMID_REL_AR_PCT',
+        'DIRECAO_VENTO_GRAUS',
+        'VELOC_VENTO_MS'
+    ]
+    if len(df.columns) == len(nomes_padronizados):
+        df.columns = nomes_padronizados
+    else:
+        pass
+
     def tratar_numero(valor):
         if isinstance(valor, str):
             valor = valor.strip()

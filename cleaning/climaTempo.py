@@ -1,6 +1,5 @@
 import pandas as pd
 import os
-import numpy as np
 
 def tratar_csv(nome_arquivo, pasta_saida='trusted'):
     os.makedirs(pasta_saida, exist_ok=True)
@@ -34,7 +33,7 @@ def tratar_csv(nome_arquivo, pasta_saida='trusted'):
             if valor.endswith('.'):
                 valor = valor + '0'
             if valor == '':
-                return np.nan
+                return float('nan')
             try:
                 return str(float(valor))
             except ValueError:

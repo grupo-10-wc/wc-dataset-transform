@@ -1,5 +1,7 @@
-import requests
 import os
+import zipfile
+import requests
+from io import BytesIO
 
 def download(url, filename, folder="./sendToRaw/files"):
     os.makedirs(folder, exist_ok=True)
@@ -10,15 +12,9 @@ def download(url, filename, folder="./sendToRaw/files"):
     return filename
 
 def download_specific_zip_file(url, filename, folder="./sendToRaw/files", keep_zip=False):
-    import requests
-    import zipfile
-    from io import BytesIO
     try:
         os.makedirs(folder, exist_ok=True)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        response = requests.get(url, headers=headers, timeout=30)
+        response = requests.get(url, timeout=30)
         response.raise_for_status()
         with zipfile.ZipFile(BytesIO(response.content)) as z:
             if filename in z.namelist():
@@ -45,3 +41,7 @@ def download_specific_zip_file(url, filename, folder="./sendToRaw/files", keep_z
         return None
 
     
+if __name__ == "__main__":
+    download("https://igce.rc.unesp.br/Home/ComissaoSupervisora-old/ConservacaodeEnergiaCICE/tabela_consumo.pdf", "consumoAparelho.pdf")
+    download("https://pda-download.ccee.org.br/korJMXwpSLGyVlpRMQWduA/content", "horarioPrecoDiff.csv")
+    download_specific_zip_file("https://portal.inmet.gov.br/uploads/dadoshistoricos/2025.zip","INMET_SE_SP_A771_SAO PAULO - INTERLAGOS_01-01-2025_A_31-08-2025.CSV")

@@ -20,28 +20,29 @@ def pdf_to_csv(input_file, output_file):
     print(f"Processando PDF -> CSV: {input_file}")
     with pdfplumber.open(input_file) as pdf, open(output_file, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
+        writer.writerow(['aparelho', 'potencia', 'dias', 'utilizacao', 'medida', 'consumo'])
         for page in pdf.pages:
             text = page.extract_text()
             if not text:
                 continue
+            
             lines = text.split("\n")
+            lines = lines[8:]
             for line in lines:
-                line = line.replace("*", "").replace('"', "")
+                line = line.replace("*", "")
+                line = line.replace('"', "")
                 parts = line.split()
-                if (
-                    parts
-                    and parts[0].isalpha()
-                    and len(parts) > 4
-                    and parts[0].lower() != "consumo"
-                    and parts[-5].lower() != "frigobar"
-                ):
-                    aparelho = remove_accents(" ".join(parts[:-5]))
-                    potencia = parts[-5]
-                    dias = parts[-4]
-                    utilizacao = "1" if parts[-3] == "-" else parts[-3]
-                    medida = "h" if parts[-2] == "-" else parts[-2]
-                    consumo = parts[-1]
-                    writer.writerow([aparelho, potencia, dias, utilizacao, medida, consumo])
+                if len(parts) < 6:
+                    continue
+                aparelho = remove_accents(" ".join(parts[:-5]))
+
+                potencia = parts[-5]
+
+                dias = parts[-4]
+                utilizacao = "1" if parts[-3] == "-" else parts[-3]
+                medida = "h" if parts[-2] == "-" else parts[-2]
+                consumo = parts[-1]
+                writer.writerow([aparelho, potencia, dias, utilizacao, medida, consumo])
     print(f"✔ Arquivo salvo em {output_file}")
 
 def tratar_csv(input_file, output_file):

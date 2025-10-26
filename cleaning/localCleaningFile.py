@@ -84,7 +84,7 @@ def tratar_csv(input_file, output_file):
                 return valor
         return valor
 
-    df = df.applymap(tratar_numero)
+    df = df.map(tratar_numero)
     df = df.dropna()
     df.to_csv(output_file, index=False, header=True, sep=';')
 

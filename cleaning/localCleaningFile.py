@@ -110,24 +110,24 @@ def normalizar_datahora_pld(input_file, output_file):
     print(f"✔ Arquivo salvo em {output_file}")
 
 
-def process_consumoAparelho():
+def process_consumo_aparelho():
     input_file = input_folder / "consumoAparelho.pdf"
     output_file = output_folder / "consumo_aparelho_processed.csv"
     pdf_to_csv(input_file, output_file)
 
-def process_horarioPrecoDiff():
+def process_pld():
     input_file = input_folder / "horarioPrecoDiff.csv"
     output_file = output_folder / "horario_preco_diff_processed.csv"
     normalizar_datahora_pld(input_file, output_file)
 
-def process_dadoClima():
+def process_dado_clima():
     input_file = input_folder / "dadoClima.csv"
     output_file = output_folder / "dado_clima_processed.csv"
     tratar_csv(input_file, output_file) 
 
 
 if __name__ == "__main__":
-    #process_consumoAparelho()
-    #process_horarioPrecoDiff()
-    process_dadoClima()
+    #process_consumo_aparelho()
+    #process_pld()
+    process_dado_clima()
     print("All files processed and saved.")

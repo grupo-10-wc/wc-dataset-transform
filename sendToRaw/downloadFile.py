@@ -1,7 +1,7 @@
 import os
-import zipfile
 import requests
-from io import BytesIO
+import datetime
+import pandas as pd
 
 def download(url, filename, folder="./sendToRaw/files"):
     os.makedirs(folder, exist_ok=True)
@@ -11,37 +11,60 @@ def download(url, filename, folder="./sendToRaw/files"):
         f.write(response.content)
     return filename
 
-def download_specific_zip_file(url, filename, folder="./sendToRaw/files", keep_zip=False):
-    try:
-        os.makedirs(folder, exist_ok=True)
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        with zipfile.ZipFile(BytesIO(response.content)) as z:
-            if filename in z.namelist():
-                with z.open(filename) as extracted:
-                    out_path = os.path.join(folder, "dadoClima.csv")
-                    with open(out_path, 'wb') as out_file:
-                        out_file.write(extracted.read())
-                print(f"Arquivo extraído para {out_path}")
-                return out_path
-            else:
-                print(f"Arquivo {filename} não encontrado no ZIP.")
-                return None
-    except requests.exceptions.RequestException as e:
-        print(f"Download failed: {e}")
-        return None
-    except zipfile.BadZipFile as e:
-        print(f"Arquivo ZIP inválido: {e}")
-        return None
-    except IOError as e:
-        print(f"File write error: {e}")
-        return None
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-        return None
+def get_clima(
+    dia: datetime.datetime = datetime.datetime.now(),
+    filename: str="clima.csv",
+    folder="./sendToRaw/files"
+):
+    lat = -23.5505
+    lon = -46.6333
+    inicio = dia.replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(hours=24)
+    fim = inicio.replace(hour=23, minute=59, second=59)
+    url = "https://api.open-meteo.com/v1/forecast?past_days=2"
+
+    def to_utc_z(dt: datetime.datetime) -> str:
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        else:
+            dt = dt.astimezone(datetime.timezone.utc)
+        return dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+    if inicio >= fim:
+        raise ValueError("inicio deve ser anterior a fim")
+
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": ["temperature_2m", "relativehumidity_2m", "windspeed_10m", "winddirection_10m"],
+        "start": to_utc_z(inicio),
+        "end": to_utc_z(fim),
+        "timezone": "UTC"
+    }
+    r = requests.get(url, params=params)
+    r.raise_for_status()
+    data = r.json()["hourly"]
+
+    results = []
+    for i in range(1, len(data["time"])):
+        tmax = max(data["temperature_2m"][i-1], data["temperature_2m"][i])
+        tmin = min(data["temperature_2m"][i-1], data["temperature_2m"][i])
+        results.append({
+            "DATA": data["time"][i].split("T")[0],
+            "HORA_UTC": data["time"][i].split("T")[1].replace("Z",""),
+            "TEMP_MAX_HORA_ANT_C": tmax,
+            "TEMP_MIN_HORA_ANT_C": tmin,
+            "UMID_REL_AR_PCT": data["relativehumidity_2m"][i],
+            "DIRECAO_VENTO_GRAUS": data["winddirection_10m"][i],
+            "VELOC_VENTO_MS": data["windspeed_10m"][i]
+        })
+    df = pd.DataFrame(results)
+    df = df[df['DATA']==str(dia.date())].reset_index(drop=True)
+    df.to_csv(os.path.join(folder, filename), index=False, header=True, sep=';')
+    return df.to_dict(orient='records')
+
 
     
 if __name__ == "__main__":
     download("https://igce.rc.unesp.br/Home/ComissaoSupervisora-old/ConservacaodeEnergiaCICE/tabela_consumo.pdf", "consumoAparelho.pdf")
     download("https://pda-download.ccee.org.br/korJMXwpSLGyVlpRMQWduA/content", "horarioPrecoDiff.csv")
-    download_specific_zip_file("https://portal.inmet.gov.br/uploads/dadoshistoricos/2025.zip","INMET_SE_SP_A771_SAO PAULO - INTERLAGOS_01-01-2025_A_31-08-2025.CSV")
+    get_clima(datetime.datetime.now(), "clima.csv")

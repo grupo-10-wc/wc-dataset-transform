@@ -121,7 +121,7 @@ def process_pld():
     normalizar_datahora_pld(input_file, output_file)
 
 def process_dado_clima():
-    input_file = input_folder / "dadoClima.csv"
+    input_file = input_folder / "clima.csv"
     output_file = output_folder / "dado_clima_processed.csv"
     tratar_csv(input_file, output_file) 
 

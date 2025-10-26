@@ -51,15 +51,10 @@ def tratar_csv(input_file, output_file):
         return
     
     try:
-        df = pd.read_csv(input_file, skiprows=8, encoding='latin1', sep=';')
+        df = pd.read_csv(input_file, encoding='latin1', sep=';')
     except Exception as e:
         print(f"❌ Erro ao ler {input_file}: {e}")
         return
-
- 
-    indices_remover = list(range(2, 8)) + [8, 11, 12, 13, 14, 17]
-    cols_to_drop = [df.columns[i] for i in indices_remover if i < len(df.columns)]
-    df = df.drop(cols_to_drop, axis=1, errors="ignore")
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
     nomes_padronizados = [

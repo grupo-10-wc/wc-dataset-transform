@@ -113,7 +113,7 @@ def process_consumo_aparelho():
 
 def process_pld():
     input_file = input_folder / "horarioPrecoDiff.csv"
-    output_file = output_folder / "horario_preco_diff_processed.csv"
+    output_file = output_folder / "pld_normalizado.csv"
     normalizar_datahora_pld(input_file, output_file)
 
 def process_dado_clima():

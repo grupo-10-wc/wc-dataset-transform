@@ -108,7 +108,7 @@ def normalizar_datahora_pld(input_file, output_file):
 
 def process_consumo_aparelho():
     input_file = input_folder / "consumoAparelho.pdf"
-    output_file = output_folder / "consumo_aparelho.csv"
+    output_file = output_folder / "consumoAparelho.csv"
     pdf_to_csv(input_file, output_file)
 
 def process_pld():
@@ -118,7 +118,7 @@ def process_pld():
 
 def process_dado_clima():
     input_file = input_folder / "clima.csv"
-    output_file = output_folder / "dados_clima.csv"
+    output_file = output_folder / "dadosClima.csv"
     tratar_csv(input_file, output_file) 
 
 

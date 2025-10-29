@@ -1,5 +1,4 @@
 from sendToRaw.downloadFile import download, get_clima
-from cleaning.localCleaningFile import process_consumo_aparelho, process_pld, process_dado_clima
 
 if __name__ == "__main__":
     download(
@@ -12,6 +11,3 @@ if __name__ == "__main__":
     )
     get_clima()
     
-    process_consumo_aparelho()
-    process_pld()
-    process_dado_clima()

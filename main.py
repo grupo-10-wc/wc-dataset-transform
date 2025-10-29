@@ -11,7 +11,7 @@ if __name__ == "__main__":
         "horarioPrecoDiff.csv"
     )
     get_clima()
-
+    
     process_consumo_aparelho()
     process_pld()
     process_dado_clima()

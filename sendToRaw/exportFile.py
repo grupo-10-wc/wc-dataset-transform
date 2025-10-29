@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def send_to_s3(local_folder, bucket_name='wc-data-teste', s3_prefix='arquios/'):
+def send_to_s3(local_folder, bucket_name='raw-wattech10', s3_prefix=datetime.datetime.now().strftime('%Y-%m-%d/')):
     
     s3_client = boto3.client(
         's3',
@@ -15,7 +15,6 @@ def send_to_s3(local_folder, bucket_name='wc-data-teste', s3_prefix='arquios/'):
         aws_session_token=os.getenv('AWS_SESSION_TOKEN'),
         region_name=os.getenv('AWS_DEFAULT_REGION')
     )
-    
 
     if not os.path.exists(local_folder):
         print(f"Pasta local {local_folder} não existe.")
@@ -44,4 +43,8 @@ if __name__ == "__main__":
     downloadFile.download("https://igce.rc.unesp.br/Home/ComissaoSupervisora-old/ConservacaodeEnergiaCICE/tabela_consumo.pdf", "consumoAparelho.pdf")
     downloadFile.download("https://pda-download.ccee.org.br/korJMXwpSLGyVlpRMQWduA/content", "horarioPrecoDiff.csv")
     downloadFile.get_clima(datetime.datetime.now(),"clima.csv")
-    #send_to_s3("./sendToRaw/files")
+
+    # use the 'files' folder located next to this script (sendToRaw/files)
+    script_dir = os.path.dirname(__file__)
+    files_dir = os.path.join(script_dir, 'files')
+    send_to_s3(files_dir)

@@ -87,6 +87,7 @@ def tratar_csv(input_file, output_file):
 
     df = df.map(tratar_numero)
     df = df.dropna()
+    df['HORA_UTC'] = df['HORA_UTC'].str.replace(':', '')
     df.to_csv(output_file, index=False, header=True, sep=';')
 
 

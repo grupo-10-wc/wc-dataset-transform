@@ -121,7 +121,7 @@ def get_clima(
         df_out["VELOC_VENTO_MS"] = pd.NA
 
     # save to CSV
-    df_out.to_csv(filepath, index=False)
+    df_out.to_csv(filepath, index=False, sep=';')
     return filepath
 
 

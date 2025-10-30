@@ -16,51 +16,113 @@ def get_clima(
     filename: str="clima.csv",
     folder="./sendToRaw/files"
 ):
-    lat = -23.5505
-    lon = -46.6333
-    inicio = dia.replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(hours=24)
-    fim = inicio.replace(hour=23, minute=59, second=59)
-    url = "https://api.open-meteo.com/v1/forecast?past_days=2"
+    """Fetch hourly climate data for São Paulo from six months before `dia` until `dia`.
 
-    def to_utc_z(dt: datetime.datetime) -> str:
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=datetime.timezone.utc)
-        else:
-            dt = dt.astimezone(datetime.timezone.utc)
-        return dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    The function uses the free Open-Meteo API to retrieve hourly values and maps
+    them to the expected columns (or close equivalents):
 
-    if inicio >= fim:
-        raise ValueError("inicio deve ser anterior a fim")
+    - DATA: YYYY-MM-DD date part of the timestamp
+    - HORA_UTC: HH:MM UTC time part
+    - TEMP_MAX_HORA_ANT_C: temperature (deg C) — provided as hourly temperature
+    - TEMP_MIN_HORA_ANT_C: temperature (deg C) — provided as hourly temperature
+    - UMID_REL_AR_PCT: relative humidity (%)
+    - DIRECAO_VENTO_GRAUS: wind direction (degrees)
+    - VELOC_VENTO_MS: wind speed (m/s)
 
+    The CSV is saved to `os.path.join(folder, filename)` and the function returns
+    that filepath on success. On failure it raises an exception.
+    """
+    # ensure dia is a datetime
+    if not isinstance(dia, datetime.datetime):
+        try:
+            dia = pd.to_datetime(dia)
+        except Exception:
+            dia = datetime.datetime.now()
+
+    # compute start date = six months before `dia`
+    try:
+        start = (pd.to_datetime(dia) - pd.DateOffset(months=6)).date()
+    except Exception:
+        # fallback to 180 days
+        start = (pd.to_datetime(dia) - pd.Timedelta(days=180)).date()
+
+    end = pd.to_datetime(dia).date()
+
+    # São Paulo coordinates (approx.)
+    latitude = -23.5505
+    longitude = -46.6333
+
+    # request hourly temperature, humidity, wind speed and direction in UTC
+    # Use the archive API for historical data
+    base_url = "https://archive-api.open-meteo.com/v1/archive"
     params = {
-        "latitude": lat,
-        "longitude": lon,
-        "hourly": ["temperature_2m", "relativehumidity_2m", "windspeed_10m", "winddirection_10m"],
-        "start": to_utc_z(inicio),
-        "end": to_utc_z(fim),
-        "timezone": "UTC"
+        "latitude": latitude,
+        "longitude": longitude,
+        "hourly": ",".join([
+            "temperature_2m",
+            "relativehumidity_2m",
+            "windspeed_10m",
+            "winddirection_10m",
+        ]),
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+        "timezone": "UTC",
     }
-    r = requests.get(url, params=params)
-    r.raise_for_status()
-    data = r.json()["hourly"]
 
-    results = []
-    for i in range(1, len(data["time"])):
-        tmax = max(data["temperature_2m"][i-1], data["temperature_2m"][i])
-        tmin = min(data["temperature_2m"][i-1], data["temperature_2m"][i])
-        results.append({
-            "DATA": data["time"][i].split("T")[0],
-            "HORA_UTC": data["time"][i].split("T")[1].replace("Z",""),
-            "TEMP_MAX_HORA_ANT_C": tmax,
-            "TEMP_MIN_HORA_ANT_C": tmin,
-            "UMID_REL_AR_PCT": data["relativehumidity_2m"][i],
-            "DIRECAO_VENTO_GRAUS": data["winddirection_10m"][i],
-            "VELOC_VENTO_MS": data["windspeed_10m"][i]
-        })
-    df = pd.DataFrame(results)
-    df = df[df['DATA']==str(dia.date())].reset_index(drop=True)
-    df.to_csv(os.path.join(folder, filename), index=False, header=True, sep=';')
-    return df.to_dict(orient='records')
+    os.makedirs(folder, exist_ok=True)
+    filepath = os.path.join(folder, filename)
+
+    try:
+        resp = requests.get(base_url, params=params, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch climate data: {e}")
+
+    hourly = data.get("hourly")
+    if not hourly:
+        raise RuntimeError("No hourly data returned from API")
+
+    # convert to DataFrame
+    df = pd.DataFrame(hourly)
+
+    # `time` column is ISO timestamps in UTC
+    if "time" not in df.columns:
+        raise RuntimeError("API response missing 'time' values")
+
+    df["time"] = pd.to_datetime(df["time"])  # UTC
+    # build required columns
+    df_out = pd.DataFrame()
+    df_out["DATA"] = df["time"].dt.date.astype(str)
+    df_out["HORA_UTC"] = df["time"].dt.strftime("%H:%M")
+
+    # map temperature and humidity/wind fields if present
+    if "temperature_2m" in df.columns:
+        # we don't have intra-hour min/max; provide hourly temperature as both
+        df_out["TEMP_MAX_HORA_ANT_C"] = df["temperature_2m"]
+        df_out["TEMP_MIN_HORA_ANT_C"] = df["temperature_2m"]
+    else:
+        df_out["TEMP_MAX_HORA_ANT_C"] = pd.NA
+        df_out["TEMP_MIN_HORA_ANT_C"] = pd.NA
+
+    if "relativehumidity_2m" in df.columns:
+        df_out["UMID_REL_AR_PCT"] = df["relativehumidity_2m"]
+    else:
+        df_out["UMID_REL_AR_PCT"] = pd.NA
+
+    if "winddirection_10m" in df.columns:
+        df_out["DIRECAO_VENTO_GRAUS"] = df["winddirection_10m"]
+    else:
+        df_out["DIRECAO_VENTO_GRAUS"] = pd.NA
+
+    if "windspeed_10m" in df.columns:
+        df_out["VELOC_VENTO_MS"] = df["windspeed_10m"]
+    else:
+        df_out["VELOC_VENTO_MS"] = pd.NA
+
+    # save to CSV
+    df_out.to_csv(filepath, index=False)
+    return filepath
 
 
     
